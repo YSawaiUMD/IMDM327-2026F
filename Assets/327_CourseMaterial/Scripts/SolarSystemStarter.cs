@@ -1,7 +1,9 @@
 // IMDM327 Material
 // Use CSV or JSON to load data into the simulation. Both formats are supported, but they use different data types. 
 // The CSV format uses a struct, while the JSON format uses a class. This script demonstrates how to load both formats and access their data.
+using Unity.Mathematics;
 using UnityEngine;
+using System.Collections.Generic;
 public class SolarSystemStarter : MonoBehaviour
 {
     // These components can be attached independently.
@@ -29,6 +31,7 @@ public class SolarSystemStarter : MonoBehaviour
     {
         // CSV: use this block when a DataCSV component is attached.
         solarCSV = GetComponent<DataCSV>();
+
         if (solarCSV != null)
         {
             solarBodiesCSV = solarCSV.bp;
@@ -45,14 +48,22 @@ public class SolarSystemStarter : MonoBehaviour
         //     Debug.Log("First body: " + solarBodiesJSON[0].name + ", mass: " + solarBodiesJSON[0].mass);
         // }
 
-
         // GameObject array to hold the planets in the simulation.
         planetProperties = new PlanetProperty[numberOfSphere];
         for (int i = 0; i < numberOfSphere; i++)
         {
             // Our gameobjects are created here:
             planetProperties[i] = new PlanetProperty();
-            planetProperties[i].planet = GameObject.CreatePrimitive(PrimitiveType.Sphere); 
+            planetProperties[i].planet = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            if (i == 0)
+            {
+                planetProperties[i].planet.GetComponent<Renderer>().material.color = Color.yellow;
+                planetProperties[i].planet.transform.localScale = Vector3.one * 20f;
+            }
+            else
+            {
+                planetProperties[i].planet.transform.localScale = Vector3.one * 10f;
+            }
         }
 
         // Apply the loaded data to the simulation. This is where you would set up your bodies in the scene based on the loaded data.
@@ -63,7 +74,9 @@ public class SolarSystemStarter : MonoBehaviour
 
             // What is missing here? You need to set the initial position and velocity of each planet based on the loaded data.
             // ***WRITE YOUR CODE HERE***
-
+            float theta = 2 * Mathf.PI * UnityEngine.Random.Range(0f, 1f);
+            planetProperties[i].actualPosition = new Vector3(solarBodiesCSV[i].distance * Mathf.Cos(theta), solarBodiesCSV[i].distance * Mathf.Sin(theta), 0); 
+            planetProperties[i].velocity = new Vector3(-Mathf.Sin(theta) * solarBodiesCSV[i].initial_velocity, Mathf.Cos(theta) * solarBodiesCSV[i].initial_velocity, 0);
 
         }
     }
@@ -75,30 +88,38 @@ public class SolarSystemStarter : MonoBehaviour
         // 00. Initialize the acceleration for each body to zero at the start of each frame
        for (int i = 0; i < numberOfSphere; i++)
         {
-            // ***WRITE YOUR CODE HERE***
+            planetProperties[i].acceleration = Vector3.zero;
         }
         // 01. Loop through each body to calculate the gravitational forces acting on it
         for (int i = 0; i < numberOfSphere; i++)
         {
-            // ***WRITE YOUR CODE HERE***
-            // for ( int j...)
+            for (int j = i + 1; j < numberOfSphere; j++)
+            {
+                Vector3 distanceVector = planetProperties[j].actualPosition - planetProperties[i].actualPosition;
+                Vector3 accelerationI = CalculateGravity(distanceVector,planetProperties[j].mass);
+                Vector3 accelerationJ = CalculateGravity( -distanceVector, planetProperties[i].mass);
+                planetProperties[i].acceleration += accelerationI;
+                planetProperties[j].acceleration += accelerationJ;
+            }
         }
         // 02. Loop through each body to update its velocity and position based on the calculated acceleration
        for (int i = 0; i < numberOfSphere; i++)
         {
-            // ***WRITE YOUR CODE HERE***
-
-
-            // Scale: float scaledDistance = Mathf.Sqrt(actualPosition[i].magnitude / 1e8f);
-
+            planetProperties[i].velocity += planetProperties[i].acceleration * Time.deltaTime * 100000f;
+            planetProperties[i].actualPosition += planetProperties[i].velocity * Time.deltaTime * 100000f;
+            float scaledDistance = Mathf.Sqrt(planetProperties[i].actualPosition.magnitude / 1e8f);
+            Vector3 direction = planetProperties[i].actualPosition.normalized;
+            planetProperties[i].planet.transform.position = direction * scaledDistance;
         }
     }
 
     // Gravity Fuction to finish
-    private Vector3 CalculateGravity(Vector3 distanceVector, float m1, float m2)
+    // Gravity Fuction to finish
+    private Vector3 CalculateGravity(Vector3 distanceVector, float otherMass)
     {
-        Vector3 gravity = Vector3.zero; // note this is also Vector3
-        gravity = G * m1 * m2 / (distanceVector.sqrMagnitude) * distanceVector.normalized;
+        Vector3 gravity = Vector3.zero;
+        gravity = G * otherMass / distanceVector.sqrMagnitude * distanceVector.normalized;
+
         return gravity;
     }
 }
