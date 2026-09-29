@@ -17,7 +17,7 @@ public class ThreeBody : MonoBehaviour
         public Vector3 velocity;
         public Vector3 acceleration;
     }
-
+    
 
     void Start()
     {
@@ -89,10 +89,10 @@ public class ThreeBody : MonoBehaviour
         }
         for (int i = 0; i < numberOfSphere; i++)
         {
-            bp[i].velocity += bp[i].acceleration * Time.deltaTime;
+            bp[i].velocity += bp[i].acceleration * Time.fixedDeltaTime;
             bp[i].velocity = Vector3.ClampMagnitude(bp[i].velocity, maxSpeed);
 
-            bp[i].body.transform.position += bp[i].velocity * Time.deltaTime;
+            bp[i].body.transform.position += bp[i].velocity * Time.fixedDeltaTime;
         }
     }
 
